@@ -15,7 +15,7 @@ Follow Section 2 and 3 to download and configure the pre-trained model and datas
 
 ### 2. Pretrained model 
 
-The weight files of the pre-trained Deepfake model and the Deepfake model fine-tuned with LoRA patches are available at [SimSwap (old)](https://drive.google.com/drive/folders/1tGqLa87UogpMoDbzthsclIcL52-jHbk_?usp=drive_link).
+The weight files of the pre-trained Deepfake model and the Deepfake model fine-tuned with LoRA patches are available at [checkpoint](https://drive.google.com/drive/folders/1HhAl9ezpLLHzVbvm6XtnQYE6yTm-OWri?usp=sharing).
 
 Please download them and put them at `LoRA-Patching/checkpoint/`.
 
@@ -85,4 +85,5 @@ python main.py --mode test --rank 16 --gpus 0 --deepfake stargan --warning True 
 
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
+
 
