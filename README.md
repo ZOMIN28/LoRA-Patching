@@ -2,7 +2,6 @@
 Official PyTorch implementation of **LoRA Patching: Exposing the Fragility of Proactive Defenses against Deepfakes**.
 
 This repository provides the source code for our paper, which introduces **LoRA Patching**, a plug-and-play approach for bypassing state-of-the-art proactive Deepfake defenses and enabling defensive watermarking. The method leverages lightweight Low-Rank Adaptation (LoRA) blocks inserted into Deepfake generators to adaptively neutralize adversarial perturbations while preserving editing capabilities on benign images.
-
 <img src="images\intro.png" alt="intro" style="zoom:67%;" />
 
 
@@ -25,7 +24,6 @@ we provide a celebA-256-mini dataset, which contains 30,000 face images sampled 
 ### 4. Embedding LoRA for Deepfake
 
  A pair of LoRA matrices is inserted into each convolutional and deconvolutional layer of the Deepfake model to adjust the output. Each layer further includes a learnable gating parameter that adaptively trades off the patch’s influence.
-
 <img src="images\lora.png" alt="lora" style="zoom:67%;" />
 
 You can run the following code to embed the LoRA patch for your Deepfake model:
@@ -80,5 +78,6 @@ or
 ```bash
 python main.py --mode test --rank 16 --gpus 0 --deepfake stargan --warning True --leakage True
 ```
+
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
