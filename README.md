@@ -9,7 +9,7 @@ This repository provides the source code for our paper, which introduces **LoRA 
 
 
 ### 1. Preparing
-Install the required dependency packages given in requirements.txt.
+Install the required dependency packages given in `requirements.txt`.
 
 Follow Section 2 and 3 to download and configure the pre-trained model and dataset.
 
@@ -85,5 +85,6 @@ python main.py --mode test --rank 16 --gpus 0 --deepfake stargan --warning True 
 
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
+
 
 
