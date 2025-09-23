@@ -23,7 +23,7 @@ Please download them and put them at `LoRA-Patching/checkpoint/`.
 ### 3. Dataset
 we provide a celebA-256-mini dataset, which contains 30,000 face images sampled from the celebA dataset and their attribute information, which you can get at [celebA-256-mini](https://drive.google.com/file/d/1v4KazZb9DFr_DpOFCwL-qGZc0AdYhBXq/view?usp=sharing), and put it at `LoRA-Patching/data/`.
 
-### 4. Embedding LoRA for Deepfake
+### 4. Embedding LoRA for Deepfake (GAN)
 
  A pair of LoRA matrices is inserted into each convolutional and deconvolutional layer of the Deepfake model to adjust the output. Each layer further includes a learnable gating parameter that adaptively trades off the patch’s influence.
 <p align="center">
@@ -87,6 +87,7 @@ python main.py --mode test --rank 16 --gpus 0 --deepfake stargan --warning True 
 
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
+
 
 
 
