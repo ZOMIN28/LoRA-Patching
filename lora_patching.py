@@ -97,6 +97,7 @@ class LoRA_patching:
             total_blip_loss = 0.
 
             with tqdm(total=len(train_dataloader),desc=f'Epoch {epoch}/{self.epochs}',unit='batch') as pbar:
+                
                 for n, (x_input, c_org) in enumerate(train_dataloader):
                     x_input, c_org = x_input.to(self.device), c_org.to(self.device)
                     c_org_list = self.process(c_org)
@@ -132,7 +133,7 @@ class LoRA_patching:
                     if n % self.save_interval == 0:
                         save_res = torch.cat([x_input, y_output_ori, y_output,y_output_adv], dim=0)
                         save_image(denorm(save_res), f"save/train_res/{self.model_type}_{n}.jpg", nrow=self.batch_size)
-                        torch.save(self.deepfake.state_dict(), self.save_path)
+                        # torch.save(self.deepfake.state_dict(), self.save_path)
 
                     pbar.set_postfix(
                         total_loss=total_loss.item() / (n + 1),
@@ -140,7 +141,8 @@ class LoRA_patching:
                         feat_loss=total_feat_loss.item() / (n + 1),
                         blip_loss=total_blip_loss.item() / (n + 1))
                     pbar.update()
-
+                    
+                torch.save(self.deepfake.state_dict(), self.save_path)
 
     def test(self, test_dataloader):
         self.deepfake.load_state_dict(torch.load(self.save_path, map_location=lambda storage, loc: storage))
@@ -179,3 +181,4 @@ class LoRA_patching:
             full_batch = torch.cat(rows, dim=0)
             grid = make_grid(full_batch, nrow=len(c_org_list), padding=2)
             save_image(grid, f"save/test_res/{self.model_type}_{n}.jpg")
+
