@@ -39,6 +39,8 @@ deepfake = load_model()
 inject_lora(module=deepfake, r=rank, alpha=alpha, gated=True)
 ```
 
+**In addition, you can use this method to plug and play embed LoRA for your own GAN model. You only need to change the Deepfake model to your own model.**
+
 ### 5. Fine-tuning the LoRA patch
 Taking [StarGAN](https://github.com/yunjey/stargan) as an example (You can also train/test `attgan` or `HiSD`, which is provided in our implementation), you can run the following command to implement the **standard** LoRA patching for it:
 ```bash
@@ -85,6 +87,7 @@ python main.py --mode test --rank 16 --gpus 0 --deepfake stargan --warning True 
 
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
+
 
 
 
