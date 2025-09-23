@@ -40,7 +40,7 @@ inject_lora(module=deepfake, r=rank, alpha=alpha, gated=True)
 ```
 
 ### 5. Fine-tuning the LoRA patch
-Taking [StarGAN](https://github.com/yunjey/stargan) as an example, you can run the following command to implement the **standard** LoRA patching for it:
+Taking [StarGAN](https://github.com/yunjey/stargan) as an example (You can also train/test `attgan` or `HiSD`, which is provided in our implementation), you can run the following command to implement the **standard** LoRA patching for it:
 ```bash
 python main.py --mode train --rank 8 --epochs 1 --gpus 0 --deepfake stargan
 ```
@@ -85,6 +85,7 @@ python main.py --mode test --rank 16 --gpus 0 --deepfake stargan --warning True 
 
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
+
 
 
 
