@@ -27,7 +27,7 @@ we provide a celebA-256-mini dataset, which contains 30,000 face images sampled 
 
  A pair of LoRA matrices is inserted into each convolutional and deconvolutional layer of the Deepfake model to adjust the output. Each layer further includes a learnable gating parameter that adaptively trades off the patch’s influence.
 <p align="center">
-<img src="images\lora.png" alt="lora" style="zoom:67%;" />
+<img src="images\lora.png" alt="lora" style="zoom:50%;" />
 </p>
 
 You can run the following code to embed the LoRA patch for your Deepfake model:
@@ -85,6 +85,7 @@ python main.py --mode test --rank 16 --gpus 0 --deepfake stargan --warning True 
 
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
+
 
 
 
