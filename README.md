@@ -59,9 +59,6 @@ You can run the following command to test the **standard** LoRA patching:
 ```bash
 python main.py --mode test --rank 8 --gpus 0 --deepfake stargan
 ```
-The visualization results are as follows:
-
-<img src="images\res.png" alt="res" style="zoom:67%;" />
 
 And You can run the following command to test the **defensive** LoRA patching:
 
@@ -69,24 +66,28 @@ And You can run the following command to test the **defensive** LoRA patching:
 python main.py --mode test --rank 16 --gpus 0 --deepfake stargan --warning True
 ```
 
-The visualization results are as follows:
-
-<img src="images\res_warning.png" alt="res_warning" style="zoom:67%;" />
-
 If you want to evaluate the performance in a leakage scenario (i.e., a patched deepfake is accessible to the defender), you can run the following command:
 
 ```bash
 python main.py --mode test --rank 8 --gpus 0 --deepfake stargan --leakage True
 ```
 
-or
+The visualization results are as follows:
+
+<img src="images\res.png" alt="res" style="zoom:67%;" />
+
+And for the **defensive** LoRA patching:
 
 ```bash
 python main.py --mode test --rank 16 --gpus 0 --deepfake stargan --warning True --leakage True
 ```
+The visualization results are as follows:
+
+<img src="images\res_warning.png" alt="res_warning" style="zoom:67%;" />
 
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
+
 
 
 
