@@ -1,10 +1,11 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 from utils.utils import denorm, Image2tensor
 from torchvision.utils import save_image, make_grid
 from net.lora4conv import inject_lora
-from deepfake import *
+from deepfake import DeepfakeHandler
 from utils.attack import LinfPGDAttack
 from utils.BLIP_loss import BLIPDistanceCalculator
 from torchvision.models import resnet50
@@ -27,25 +28,27 @@ class LoRA_patching:
         self.batch_size = args.batch_size
         self.lambda_feat = args.lambda_feat
         self.lambda_blip = args.lambda_blip
-        self.save_interval = 100
+        self.save_interval = 50
 
         self.warning_image = Image2tensor("data/warning.png")
 
         # The original deepfake
-        self.deepfake_ori = load_model(self.model_type)
-        self.deepfake_ori = self.deepfake_ori.to(device)
-        for param in self.deepfake_ori.parameters():
+        self.deepfake_ori_handler = DeepfakeHandler(device, self.model_type)
+        for param in self.deepfake_ori_handler.model.parameters():
             param.requires_grad = False
         
-        self.process = load_process(self.model_type)
-
         # deepfake with lora patch
-        self.deepfake = load_model(self.model_type)
-        inject_lora(module=self.deepfake, r=self.rank, alpha=2.0, gated=True)
-        self.deepfake = self.deepfake.to(device)
-
-        self.optimizer_G = torch.optim.Adam(self.deepfake.parameters(),self.lr, [self.beta1, self.beta2])
-
+        self.deepfake_handler = DeepfakeHandler(device, self.model_type)
+        # patching the deepfake model
+        inject_lora(module=self.deepfake_handler.model, r=self.rank, alpha=2.0, gated=True)
+        self.deepfake_handler.model = self.deepfake_handler.model.to(device)
+        # The parameters of the convolutional and deconvolutional layers have been frozen
+        self.optimizer_G = torch.optim.Adam(self.deepfake_handler.model.parameters(),
+                                            self.lr, [self.beta1, self.beta2])
+        if args.mode == "train":
+            self.print_param_counts()
+        
+        # Loss Components:
         self.blip_loss = BLIPDistanceCalculator(device=device)
 
         resnet = resnet50(pretrained=True).eval().to(device)
@@ -55,6 +58,15 @@ class LoRA_patching:
 
         self.save_path = self.get_save_path()
     
+    def print_param_counts(self):
+        total_params = sum(p.numel() for p in self.deepfake_handler.model.parameters())
+        frozen_params = sum(p.numel() for p in self.deepfake_handler.model.parameters() if not p.requires_grad)
+        trainable_params = total_params - frozen_params
+        print(f"#Total parameters: {total_params:,}")
+        print(f" #Trainable parameters: {trainable_params:,}")
+        print(f" #Frozen parameters: {frozen_params:,}")
+
+
 
     def get_save_path(self, root="checkpoint/lora/lora_patch4"):
         save_name = root + self.model_type
@@ -89,7 +101,7 @@ class LoRA_patching:
 
 
     def train(self, train_dataloader):
-        self.deepfake.train()
+        self.deepfake_handler.model.train()
         for epoch in range(1, self.epochs + 1):
             total_loss = 0.
             total_diff_loss = 0.
@@ -100,21 +112,21 @@ class LoRA_patching:
                 
                 for n, (x_input, c_org) in enumerate(train_dataloader):
                     x_input, c_org = x_input.to(self.device), c_org.to(self.device)
-                    c_org_list = self.process(c_org)
+                    c_org_list = self.deepfake_handler.process_input(c_org)
 
                     for c_trg in c_org_list:
                         with torch.no_grad():
                             # y_output_now is used to solve the problem of fighting Audi
-                            y_output_now = manipulate(x_input, c_trg, self.model_type, self.deepfake)
+                            y_output_now = self.deepfake_handler.manipulate(x_input, c_trg)
                             # y_output_ori is used to calculate the loss
-                            y_output_ori = manipulate(x_input, c_trg, self.model_type, self.deepfake_ori)
+                            y_output_ori = self.deepfake_ori_handler.manipulate(x_input, c_trg)
 
                         # Adversarial Training Paradigm
-                        attack = LinfPGDAttack(model=self.deepfake, device=device, epsilon=0.05, manipulate=manipulate)
-                        x_adv, _ = attack.perturb(x_input, y_output_now, c_trg, self.model_type)
+                        attack = LinfPGDAttack(handler=self.deepfake_handler, device=self.device, epsilon=0.05)
+                        x_adv, _ = attack.perturb(x_input, y_output_now, c_trg)
                         
-                        y_output = manipulate(x_input, c_trg, self.model_type, self.deepfake)
-                        y_output_adv = manipulate(x_adv, c_trg, self.model_type, self.deepfake)
+                        y_output = self.deepfake_handler.manipulate(x_input, c_trg)
+                        y_output_adv = self.deepfake_handler.manipulate(x_adv, c_trg)
 
                         diff_loss, feat_loss, blip_loss = self.loss_fn(y_output_ori, y_output, y_output_adv)
 
@@ -142,15 +154,16 @@ class LoRA_patching:
                         blip_loss=total_blip_loss.item() / (n + 1))
                     pbar.update()
                     
-                torch.save(self.deepfake.state_dict(), self.save_path)
+                torch.save(self.deepfake_handler.model.state_dict(), self.save_path)
 
     def test(self, test_dataloader):
-        self.deepfake.load_state_dict(torch.load(self.save_path, map_location=lambda storage, loc: storage))
-        self.deepfake = self.deepfake.to(self.device)
+        self.deepfake_handler.model.load_state_dict(torch.load(self.save_path, 
+                                                               map_location=lambda storage, loc: storage))
+        self.deepfake_handler.model = self.deepfake_handler.model.to(self.device)
 
         for n, (x_input, c_org) in enumerate(tqdm(test_dataloader)):
             x_input, c_org = x_input.to(self.device), c_org.to(self.device)
-            c_org_list = self.process(c_org)
+            c_org_list = self.deepfake_handler.process_input(c_org)
             y_ori_list = []
             y_adv_ori_list = []
             y_lora_list = []
@@ -158,21 +171,23 @@ class LoRA_patching:
 
             for _, c_trg in enumerate(c_org_list):
                 if not self.leakage:
-                    x_adv = deepfake_defense(x_input, c_trg, self.deepfake_ori, self.model_type)
+                    x_adv = self.deepfake_ori_handler.proactive_defend(x_input, c_trg)
+                    x_adv_ori = x_adv.clone()
                 else:
-                    x_adv = deepfake_defense(x_input, c_trg, self.deepfake, self.model_type)
+                    x_adv = self.deepfake_handler.proactive_defend(x_input, c_trg)
+                    x_adv_ori = self.deepfake_ori_handler.proactive_defend(x_input, c_trg)
                 
                 with torch.no_grad():   
-                    y_ori = manipulate(x_input, c_trg, self.model_type, self.deepfake_ori)
+                    y_ori = self.deepfake_ori_handler.manipulate(x_input, c_trg)
                     y_ori_list.append(denorm(y_ori))
 
-                    y_adv_ori = manipulate(x_adv, c_trg, self.model_type, self.deepfake_ori)
+                    y_adv_ori = self.deepfake_ori_handler.manipulate(x_adv_ori, c_trg)
                     y_adv_ori_list.append(denorm(y_adv_ori))
 
-                    y_lora = manipulate(x_input, c_trg, self.model_type, self.deepfake)
+                    y_lora = self.deepfake_handler.manipulate(x_input, c_trg)
                     y_lora_list.append(denorm(y_lora))
 
-                    y_adv_lora = manipulate(x_adv, c_trg, self.model_type, self.deepfake)
+                    y_adv_lora = self.deepfake_handler.manipulate(x_adv, c_trg)
                     y_adv_lora_list.append(denorm(y_adv_lora))
 
             lists = [y_ori_list, y_adv_ori_list, y_lora_list, y_adv_lora_list]
