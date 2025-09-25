@@ -30,7 +30,8 @@ we provide a celebA-256-mini dataset, which contains 30,000 face images sampled 
 <img src="images\lora.png" alt="lora" style="zoom:50%;" />
 </p>
 
-You can run the following code to embed the LoRA patch for your generator model:
+**You can use the function `inject_lora()` to plug and play embed LoRA for your own GAN model.**
+Running the following code to embed the LoRA patch into your model:
 
 ```python
 from net.lora4conv import inject_lora
@@ -39,9 +40,6 @@ model = load_model().to(device)
 inject_lora(module=model, r=rank, alpha=alpha, gated=True)
 model = model.to(device)
 ```
-
-**In addition, you can use the function `inject_lora()` to plug and play embed LoRA for your own GAN model. You only need to change the Deepfake model to your own model.**
-
 ### 5. Fine-tuning the LoRA patch
 Taking [StarGAN](https://github.com/yunjey/stargan) as an example (You can also train/test `attgan` or `HiSD`, which is provided in our implementation), you can run the following command to implement the **standard** LoRA patching for it:
 ```bash
@@ -88,6 +86,7 @@ The visualization results are as follows:
 
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
+
 
 
 
