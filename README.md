@@ -86,7 +86,7 @@ The visualization results are as follows:
 
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
 
-#. Citation
+### 7. Citation
 If our paper helps your research, please cite it in your publications:
 ```
 @article{qu2025lora,
@@ -96,6 +96,7 @@ If our paper helps your research, please cite it in your publications:
   year={2025}
 }
 ```
+
 
 
 
