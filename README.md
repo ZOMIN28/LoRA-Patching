@@ -84,9 +84,18 @@ The visualization results are as follows:
 
 <img src="images\res_warning.png" alt="res_warning" style="zoom:67%;" />
 
-
 [Disrupting](https://github.com/natanielruiz/disrupting-deepfakes) is selected as the baseline proactive defense.
 
+#. Citation
+If our paper helps your research, please cite it in your publications:
+```
+@article{qu2025lora,
+  title={LoRA Patching: Exposing the Fragility of Proactive Defenses against Deepfakes},
+  author={Qu, Zuomin and Guo, Yimao and Hu, Qianyue and Lu, Wei},
+  journal={arXiv preprint arXiv:2510.03747},
+  year={2025}
+}
+```
 
 
 
