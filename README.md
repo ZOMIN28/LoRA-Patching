@@ -1,5 +1,5 @@
 # LoRA Patching: Exposing the Fragility of Proactive Defenses against Deepfakes
-Official PyTorch implementation of **LoRA Patching: Exposing the Fragility of Proactive Defenses against Deepfakes**.
+Official PyTorch implementation of [**LoRA Patching: Exposing the Fragility of Proactive Defenses against Deepfakes**](https://arxiv.org/abs/2510.03747).
 
 This repository provides the source code for our paper, which introduces **LoRA Patching**, a plug-and-play approach for bypassing state-of-the-art proactive Deepfake defenses and enabling defensive watermarking. The method leverages lightweight Low-Rank Adaptation (LoRA) blocks inserted into Deepfake generators to adaptively neutralize adversarial perturbations while preserving editing capabilities on benign images.
 <p align="center">
@@ -96,6 +96,7 @@ If our paper helps your research, please cite it in your publications:
   year={2025}
 }
 ```
+
 
 
 
