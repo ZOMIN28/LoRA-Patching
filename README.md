@@ -41,7 +41,7 @@ inject_lora(module=model, r=rank, alpha=alpha, gated=True)
 model = model.to(device)
 ```
 ### 5. Fine-tuning the LoRA patch
-Taking [StarGAN](https://github.com/yunjey/stargan) as an example (You can also train/test [`attgan`](https://github.com/elvisyjlin/AttGAN-PyTorch) or [`HiSD`](https://github.com/imlixinyang/HiSD), which is provided in our implementation), you can run the following command to implement the **standard** LoRA patching for it:
+Taking [StarGAN](https://github.com/yunjey/stargan) as an example (You can also train/test [`AttGAN`](https://github.com/elvisyjlin/AttGAN-PyTorch) or [`HiSD`](https://github.com/imlixinyang/HiSD), which is provided in our implementation), you can run the following command to implement the **standard** LoRA patching for it:
 ```bash
 python main.py --mode train --rank 8 --epochs 1 --gpus 0 --deepfake stargan
 ```
@@ -96,6 +96,7 @@ If our paper helps your research, please cite it in your publications:
   year={2025}
 }
 ```
+
 
 
 
