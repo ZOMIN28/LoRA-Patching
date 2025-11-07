@@ -101,7 +101,6 @@ class LoRA_patching:
 
 
     def train(self, train_dataloader):
-        self.deepfake_handler.model.train()
         for epoch in range(1, self.epochs + 1):
             total_loss = 0.
             total_diff_loss = 0.
@@ -196,4 +195,5 @@ class LoRA_patching:
             full_batch = torch.cat(rows, dim=0)
             grid = make_grid(full_batch, nrow=len(c_org_list), padding=2)
             save_image(grid, f"save/test_res/{self.model_type}_{n}.jpg")
+
 
