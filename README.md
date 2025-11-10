@@ -37,9 +37,18 @@ Running the following code to embed the LoRA patch into your model:
 from net.lora4conv import inject_lora
 
 model = load_model().to(device)
-inject_lora(module=model, r=rank, alpha=alpha, gated=True)
+inject_lora(module=model, rank=rank, alpha=alpha, gated=True, freeze_norm=True)
 model = model.to(device)
 ```
+| Parameter     | Type              | Default | Description                                                                                                                                                                                                    |
+| ------------- | ----------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `module`      | `torch.nn.Module` | —       | The PyTorch module (model or submodule) in which LoRA layers will be injected. All `nn.Conv2d` and `nn.ConvTranspose2d` layers will be replaced.                                                               |
+| `rank`        | `int`             | 4       | The rank of the low-rank decomposition in LoRA layers. Higher rank increases the capacity and number of trainable parameters.                                                                                  |
+| `alpha`       | `float`           | 1.0     | Scaling factor for the LoRA update. Effective weight update is scaled by `alpha / rank` for numerical stability.                                                                                               |
+| `gated`       | `bool`            | False   | Whether to enable a learnable gating mechanism to control the influence of the LoRA update. If `True`, each LoRA module includes a scalar gate parameter.                                                      |
+| `freeze_norm` | `bool`            | True    | If `True`, normalization layers (`BatchNorm`, `LayerNorm`, `InstanceNorm`, `GroupNorm`) will be frozen, preventing their parameters from updating during training. Helps maintain stability on small datasets. |
+
+
 ### 5. Fine-tuning with LoRA patching
 Taking [`StarGAN`](https://github.com/yunjey/stargan) as an example (You can also train/test [`AttGAN`](https://github.com/elvisyjlin/AttGAN-PyTorch) or [`HiSD`](https://github.com/imlixinyang/HiSD), which is provided in our implementation), you can run the following command to implement the **standard** LoRA patching for it:
 ```bash
@@ -96,6 +105,7 @@ If our paper helps your research, please cite it in your publications:
   year={2025}
 }
 ```
+
 
 
 
