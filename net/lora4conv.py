@@ -15,15 +15,15 @@ class LoRAConv2d(nn.Module):
         kernel_size = orig_conv.kernel_size
 
         # Initialize LoRA matrices
-        self.lora_A = nn.Parameter(torch.zeros(out_channels, rank))
-        lora_B = torch.zeros(rank, in_channels * kernel_size[0] * kernel_size[1])
+        lora_A = torch.zeros(rank, in_channels * kernel_size[0] * kernel_size[1])
+        self.lora_B = nn.Parameter(torch.zeros(out_channels, rank))
         
         # Initialize LoRA parameters
-        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
-        nn.init.kaiming_uniform_(lora_B, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(lora_A, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.lora_B, a=math.sqrt(5))
 
-        # Reshape LoRA B to match convolution weight dimensions
-        self.lora_B = nn.Parameter(lora_B.view(rank, in_channels, kernel_size[0], kernel_size[1]))
+        # Reshape LoRA A to match convolution weight dimensions
+        self.lora_A = nn.Parameter(lora_A.view(rank, in_channels, kernel_size[0], kernel_size[1]))
 
         self.gated = gated
 
@@ -37,9 +37,9 @@ class LoRAConv2d(nn.Module):
     def forward(self, x):
         out = self.orig_conv(x)
 
-        lora_update = F.conv2d(x, self.lora_B, stride=self.orig_conv.stride, padding=self.orig_conv.padding, 
+        lora_update = F.conv2d(x, self.lora_A, stride=self.orig_conv.stride, padding=self.orig_conv.padding, 
                                dilation=self.orig_conv.dilation, groups=self.orig_conv.groups)
-        lora_update = torch.einsum('bchw,oc->bohw', lora_update, self.lora_A)
+        lora_update = torch.einsum('bchw,oc->bohw', lora_update, self.lora_B)
         
         if self.gated:
             gate_weight = torch.sigmoid(self.gate)
@@ -60,15 +60,15 @@ class LoRAConvTranspose2d(nn.Module):
         kernel_size = orig_conv.kernel_size
 
         # Initialize LoRA matrices
-        self.lora_A = nn.Parameter(torch.zeros(out_channels, rank))
-        lora_B = torch.zeros(rank, in_channels * kernel_size[0] * kernel_size[1])
+        lora_A = torch.zeros(rank, in_channels * kernel_size[0] * kernel_size[1])
+        self.lora_B = nn.Parameter(torch.zeros(out_channels, rank))
 
         # Initialize LoRA parameters
-        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
-        nn.init.kaiming_uniform_(lora_B, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(lora_A, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.lora_B, a=math.sqrt(5))
 
-        # Reshape LoRA B to match deconvolution weight dimensions
-        self.lora_B = nn.Parameter(lora_B.view(in_channels, rank, kernel_size[0], kernel_size[1]))
+        # Reshape LoRA A to match deconvolution weight dimensions
+        self.lora_A = nn.Parameter(lora_A.view(in_channels, rank, kernel_size[0], kernel_size[1]))
 
         self.gated = gated
         
@@ -82,9 +82,9 @@ class LoRAConvTranspose2d(nn.Module):
     def forward(self, x):
         out = self.orig_conv(x)
 
-        lora_update = F.conv_transpose2d(x, self.lora_B, stride=self.orig_conv.stride, padding=self.orig_conv.padding, output_padding=self.orig_conv.output_padding, 
+        lora_update = F.conv_transpose2d(x, self.lora_A, stride=self.orig_conv.stride, padding=self.orig_conv.padding, output_padding=self.orig_conv.output_padding, 
                                             dilation=self.orig_conv.dilation, groups=self.orig_conv.groups)
-        lora_update = torch.einsum('bchw,oc->bohw', lora_update, self.lora_A)
+        lora_update = torch.einsum('bchw,oc->bohw', lora_update, self.lora_B)
         
         if self.gated:
             gate_weight = torch.sigmoid(self.gate)
@@ -132,5 +132,3 @@ def inject_lora(module, rank=4, alpha=1.0, gated=False, freeze_norm=True):
                     param.requires_grad = False
         
             inject_lora(child, rank=rank, alpha=alpha, gated=gated) 
-
-        
