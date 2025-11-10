@@ -40,7 +40,7 @@ class LoRA_patching:
         # deepfake with lora patch
         self.deepfake_handler = DeepfakeHandler(device, self.model_type)
         # patching the deepfake model
-        inject_lora(module=self.deepfake_handler.model, r=self.rank, alpha=2.0, gated=True)
+        inject_lora(module=self.deepfake_handler.model, rank=self.rank, alpha=2.0, gated=True, freeze_norm=True)
         self.deepfake_handler.model = self.deepfake_handler.model.to(device)
         # The parameters of the convolutional and deconvolutional layers have been frozen
         self.optimizer_G = torch.optim.Adam(self.deepfake_handler.model.parameters(),
@@ -195,5 +195,6 @@ class LoRA_patching:
             full_batch = torch.cat(rows, dim=0)
             grid = make_grid(full_batch, nrow=len(c_org_list), padding=2)
             save_image(grid, f"save/test_res/{self.model_type}_{n}.jpg")
+
 
 
