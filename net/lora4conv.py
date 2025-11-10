@@ -4,26 +4,26 @@ import math
 import torch.nn.functional as F
 
 class LoRAConv2d(nn.Module):
-    def __init__(self, orig_conv, r=4, alpha=1.0, gated=False):
+    def __init__(self, orig_conv, rank=4, alpha=1.0, gated=False):
         super(LoRAConv2d, self).__init__()
         self.orig_conv = orig_conv
-        self.r = r
-        self.alpha = alpha / math.sqrt(r)  # More stable scaling factor
+        self.rank = rank
+        self.alpha = alpha / math.sqrt(rank)  # More stable scaling factor
 
         in_channels = orig_conv.in_channels
         out_channels = orig_conv.out_channels
         kernel_size = orig_conv.kernel_size
 
         # Initialize LoRA matrices
-        self.lora_A = nn.Parameter(torch.zeros(out_channels, r))
-        lora_B = torch.zeros(r, in_channels * kernel_size[0] * kernel_size[1])
+        self.lora_A = nn.Parameter(torch.zeros(out_channels, rank))
+        lora_B = torch.zeros(rank, in_channels * kernel_size[0] * kernel_size[1])
         
         # Initialize LoRA parameters
         nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
         nn.init.kaiming_uniform_(lora_B, a=math.sqrt(5))
 
         # Reshape LoRA B to match convolution weight dimensions
-        self.lora_B = nn.Parameter(lora_B.view(r, in_channels, kernel_size[0], kernel_size[1]))
+        self.lora_B = nn.Parameter(lora_B.view(rank, in_channels, kernel_size[0], kernel_size[1]))
 
         self.gated = gated
 
@@ -49,26 +49,26 @@ class LoRAConv2d(nn.Module):
 
 
 class LoRAConvTranspose2d(nn.Module):
-    def __init__(self, orig_conv, r=4, alpha=1.0, gated=False):
+    def __init__(self, orig_conv, rank=4, alpha=1.0, gated=False):
         super(LoRAConvTranspose2d, self).__init__()
         self.orig_conv = orig_conv
-        self.r = r
-        self.alpha = alpha / math.sqrt(r)  # More stable scaling factor
+        self.rank = rank
+        self.alpha = alpha / math.sqrt(rank)  # More stable scaling factor
 
         in_channels = orig_conv.in_channels
         out_channels = orig_conv.out_channels
         kernel_size = orig_conv.kernel_size
 
         # Initialize LoRA matrices
-        self.lora_A = nn.Parameter(torch.zeros(out_channels, r))
-        lora_B = torch.zeros(r, in_channels * kernel_size[0] * kernel_size[1])
+        self.lora_A = nn.Parameter(torch.zeros(out_channels, rank))
+        lora_B = torch.zeros(rank, in_channels * kernel_size[0] * kernel_size[1])
 
         # Initialize LoRA parameters
         nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
         nn.init.kaiming_uniform_(lora_B, a=math.sqrt(5))
 
         # Reshape LoRA B to match deconvolution weight dimensions
-        self.lora_B = nn.Parameter(lora_B.view(in_channels, r, kernel_size[0], kernel_size[1]))
+        self.lora_B = nn.Parameter(lora_B.view(in_channels, rank, kernel_size[0], kernel_size[1]))
 
         self.gated = gated
         
@@ -93,13 +93,44 @@ class LoRAConvTranspose2d(nn.Module):
             return out + self.alpha * lora_update
 
 
-def inject_lora(module, r=4, alpha=1.0, gated=False):
+def inject_lora(module, rank=4, alpha=1.0, gated=False, freeze_norm=True):
+    """
+    Recursively injects LoRA layers into convolutional and transposed convolutional layers
+    of the given module, enabling efficient low-rank adaptation for fine-tuning.
+
+    Parameters:
+        module (torch.nn.Module):
+            The input PyTorch module (e.g., a model or submodule) in which LoRA layers
+            will be injected. All nn.Conv2d and nn.ConvTranspose2d layers will be replaced.
+
+        rank (int, default=4):
+            The rank of the low-rank decomposition in LoRA layers. Higher rank increases
+            the capacity and number of trainable parameters.
+
+        alpha (float, default=1.0):
+            Scaling factor for the LoRA update. The effective weight update is scaled by
+            alpha / rank for numerical stability.
+
+        gated (bool, default=False):
+            Whether to enable a learnable gating mechanism that controls the influence
+            of the LoRA update. If True, each LoRA module includes a scalar gate parameter.
+
+        freeze_norm (bool, default=True):
+            If True, normalization layers (BatchNorm, LayerNorm, InstanceNorm, GroupNorm)
+            will be frozen, preventing their parameters from updating during training.
+    """
+    
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
-            setattr(module, name, LoRAConv2d(child, r=r, alpha=alpha, gated=gated))
+            setattr(module, name, LoRAConv2d(child, rank=rank, alpha=alpha, gated=gated))
         elif isinstance(child, nn.ConvTranspose2d):
-            setattr(module, name, LoRAConvTranspose2d(child, r=r, alpha=alpha, gated=gated))
+            setattr(module, name, LoRAConvTranspose2d(child, rank=rank, alpha=alpha, gated=gated))
         else:
-            inject_lora(child, r=r, alpha=alpha, gated=gated) 
+            # If a normalized layer, whether to freeze parameters is controlled by freeze_norm.
+            if freeze_norm and isinstance(child, (nn.BatchNorm2d, nn.LayerNorm, nn.InstanceNorm2d, nn.GroupNorm)):
+                for param in child.parameters():
+                    param.requires_grad = False
+        
+            inject_lora(child, rank=rank, alpha=alpha, gated=gated) 
 
         
