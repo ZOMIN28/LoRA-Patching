@@ -22,8 +22,8 @@ parser.add_argument("--leakage", type=str2bool, default=False)
 parser.add_argument("--data_size", type=int, default=1000)
 parser.add_argument("--lambda_feat", type=float, default=0.1)
 parser.add_argument("--lambda_blip", type=float, default=0.1)
-parser.add_argument("--image_dir", type=str, default="F:/paper/ComGAN/data/celeba-256-mini/images/")
-parser.add_argument("--attr_path", type=str, default="F:/paper/ComGAN/data/celeba-256-mini/list.txt")
+parser.add_argument("--image_dir", type=str, default="data/celeba-256-mini/images/")
+parser.add_argument("--attr_path", type=str, default="data/celeba-256-mini/list.txt")
 args = parser.parse_args()
 
 import os
@@ -59,3 +59,4 @@ def main(args):
 if __name__ == '__main__':
 
     main(args)
+
