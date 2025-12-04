@@ -93,6 +93,43 @@ class LoRAConvTranspose2d(nn.Module):
             return out + self.alpha * lora_update
 
 
+class LoRALinear(nn.Module):
+    def __init__(self, orig_linear, rank=4, alpha=1.0, gated=False):
+        super().__init__()
+        self.orig_linear = orig_linear
+        self.rank = rank
+        self.alpha = alpha
+
+        in_features = orig_linear.in_features
+        out_features = orig_linear.out_features
+
+        # A: (rank, in)
+        # B: (out, rank)
+        self.lora_A = nn.Parameter(torch.zeros(rank, in_features))
+        self.lora_B = nn.Parameter(torch.zeros(out_features, rank))
+
+        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
+        nn.init.kaiming_uniform_(self.lora_B, a=math.sqrt(5))
+
+        self.gated = gated
+        if gated:
+            self.gate = nn.Parameter(torch.tensor(-1.0))
+
+        # Freeze original linear
+        for p in self.orig_linear.parameters():
+            p.requires_grad = False
+
+    def forward(self, x):
+        out = self.orig_linear(x)
+        lora_update = x @ self.lora_A.t()
+        lora_update = lora_update @ self.lora_B.t()
+
+        if self.gated:
+            return out + torch.sigmoid(self.gate) * self.alpha * lora_update
+        else:
+            return out + self.alpha * lora_update
+
+
 def inject_lora(module, rank=4, alpha=1.0, gated=False, freeze_norm=True):
     """
     Recursively injects LoRA layers into convolutional and transposed convolutional layers
@@ -122,9 +159,13 @@ def inject_lora(module, rank=4, alpha=1.0, gated=False, freeze_norm=True):
     
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
-            setattr(module, name, LoRAConv2d(child, rank=rank, alpha=alpha, gated=gated))
+            setattr(module, name, LoRAConv2d(child, rank, alpha, gated))
+
         elif isinstance(child, nn.ConvTranspose2d):
-            setattr(module, name, LoRAConvTranspose2d(child, rank=rank, alpha=alpha, gated=gated))
+            setattr(module, name, LoRAConvTranspose2d(child, rank, alpha, gated))
+
+        elif isinstance(child, nn.Linear):
+            setattr(module, name, LoRALinear(child, rank, alpha, gated))
         else:
             # If a normalized layer, whether to freeze parameters is controlled by freeze_norm.
             if freeze_norm and isinstance(child, (nn.BatchNorm2d, nn.LayerNorm, nn.InstanceNorm2d, nn.GroupNorm)):
