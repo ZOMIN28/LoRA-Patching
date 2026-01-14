@@ -28,7 +28,7 @@ class LoRA_patching:
         self.batch_size = args.batch_size
         self.lambda_feat = args.lambda_feat
         self.lambda_blip = args.lambda_blip
-        self.save_interval = 50
+        self.save_interval = 20
 
         self.warning_image = Image2tensor("data/warning.png")
 
@@ -40,7 +40,7 @@ class LoRA_patching:
         # deepfake with lora patch
         self.deepfake_handler = DeepfakeHandler(device, self.model_type)
         # patching the deepfake model
-        inject_lora(module=self.deepfake_handler.model, rank=self.rank, alpha=2.0, gated=True, freeze_norm=True)
+        inject_lora(module=self.deepfake_handler.model, rank=self.rank, alpha=2.0, gated=True, gated_type="basic", freeze_norm=True)
         self.deepfake_handler.model = self.deepfake_handler.model.to(device)
         # The parameters of the convolutional and deconvolutional layers have been frozen
         self.optimizer_G = torch.optim.Adam(filter(lambda p: p.requires_grad, self.deepfake_handler.model.parameters()),
@@ -49,7 +49,7 @@ class LoRA_patching:
             self.print_param_counts()
         
         # Loss Components:
-        self.blip_loss = BLIPDistanceCalculator(device=device)
+        # self.blip_loss = BLIPDistanceCalculator(device=device)
 
         resnet = resnet50(pretrained=True).eval().to(device)
         self.feature_extractor = nn.Sequential(*list(resnet.children())[:-1])
@@ -63,8 +63,8 @@ class LoRA_patching:
         frozen_params = sum(p.numel() for p in self.deepfake_handler.model.parameters() if not p.requires_grad)
         trainable_params = total_params - frozen_params
         print(f"#Total parameters: {total_params:,}")
-        print(f" #Trainable parameters: {trainable_params:,}")
-        print(f" #Frozen parameters: {frozen_params:,}")
+        print(f" -Trainable parameters: {trainable_params:,}")
+        print(f" -Frozen parameters: {frozen_params:,}")
 
 
 
@@ -92,10 +92,12 @@ class LoRA_patching:
         # Pixel-level loss
         L_diff = F.mse_loss(y_output, y_output_ori) + F.mse_loss(y_output_adv, y_output_ori)
         # Image feature loss
-        L_feat = (self.feature_loss(y_output, y_output_ori) +
-                    self.feature_loss(y_output_adv, y_output_ori)) * self.lambda_feat
+        # L_feat = (self.feature_loss(y_output, y_output_ori) +
+        #             self.feature_loss(y_output_adv, y_output_ori)) * self.lambda_feat
+        L_feat = torch.tensor([0]).to(self.device)
         # Semantic feature loss
-        L_blip = (self.blip_loss(y_output, y_output_ori) + self.blip_loss(y_output_adv, y_output_ori)) * self.lambda_blip
+        # L_blip = (self.blip_loss(y_output, y_output_ori) + self.blip_loss(y_output_adv, y_output_ori)) * self.lambda_blip
+        L_blip = torch.tensor([0]).to(self.device)
     
         return L_diff, L_feat, L_blip
 
@@ -195,7 +197,3 @@ class LoRA_patching:
             full_batch = torch.cat(rows, dim=0)
             grid = make_grid(full_batch, nrow=len(c_org_list), padding=2)
             save_image(grid, f"save/test_res/{self.model_type}_{n}.jpg")
-
-
-
-
