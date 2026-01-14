@@ -46,7 +46,8 @@ model = model.to(device)
 | `rank`        | `int`             | 4       | The rank of the low-rank decomposition in LoRA layers. Higher rank increases the capacity and number of trainable parameters.                                                                                  |
 | `alpha`       | `float`           | 1.0     | Scaling factor for the LoRA update. Effective weight update is scaled by `alpha / rank` for numerical stability.                                                                                               |
 | `gated`       | `bool`            | False   | Whether to enable a learnable gating mechanism to control the influence of the LoRA update. If `True`, each LoRA module includes a scalar gate parameter.                                                      |
-| `freeze_norm` | `bool`            | True    | If `True`, normalization layers (`BatchNorm`, `LayerNorm`, `InstanceNorm`, `GroupNorm`) will be frozen, preventing their parameters from updating during training. |
+| `gated_type`  | `str`             | "basic" | The type of gating mechanism. "basic" denotes a basic gate controlled by a single learnable scalar parameter. "input_ada" denotes an input-adaptive gate, where the gating strength is dynamically determined conditioned on the input. "input_ada_channel" denotes an input-adaptive channel-wise gate, which learns per-channel gating weights conditioned on the input.                                             |
+| `freeze_norm` | `bool`            | True    | If `True`, normalization layers (`BatchNorm`, `LayerNorm`, `InstanceNorm`, `GroupNorm`) will be frozen, preventing their parameters from updating during training.                                             |
 
 
 ### 5. Fine-tuning with LoRA patching
@@ -117,6 +118,7 @@ If our paper helps your research, please cite it in your publications:
   year={2025}
 }
 ```
+
 
 
 
